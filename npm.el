@@ -59,18 +59,13 @@ If nil, npm.el shall look up from the global path."
 
 (defun npm-exec-with-path (callback &rest args)
   "Execute CALLBACK with path set to NPM_EXECUTABLE_PATH, with optional ARGS."
-  (let* ((old-path (getenv "PATH"))
-         (old-exec-path exec-path)
-         (old-compilation-environment compilation-environment)
-         (npm-path (concat npm-executable-path ":" old-path)))
-    (when npm-executable-path
-      (setenv "PATH" npm-path)
-      (setq exec-path (cons npm-executable-path exec-path))
-      (setq compilation-environment (cons (concat "PATH=" npm-path) compilation-environment)))
-    (apply callback args)
-    (setenv "PATH" old-path)
-    (setq exec-path old-exec-path)
-    (setq compilation-environment old-compilation-environment)))
+  (let ((exec-path (if npm-executable-path
+		       (cons npm-executable-path exec-path)
+		     exec-path))
+	(compilation-environment (if npm-executable-path
+				     (cons (concat "PATH=" npm-executable-path path-separator (getenv "PATH")) compilation-environment)
+				   compilation-environment)))
+    (apply callback args)))
 
 (defun npm-git ()
   "Create a Git URL from `npm-vars-git-user' and `npm-vars-name'."
