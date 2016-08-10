@@ -59,18 +59,13 @@ If nil, npm.el shall look up from the global path."
 
 (defun npm-exec-with-path (callback &rest args)
   "Execute CALLBACK with path set to NPM_EXECUTABLE_PATH, with optional ARGS."
-  (let* ((old-path (getenv "PATH"))
-         (old-exec-path exec-path)
-         (old-compilation-environment compilation-environment)
-         (npm-path (concat npm-executable-path ":" old-path)))
-    (when npm-executable-path
-      (setenv "PATH" npm-path)
-      (setq exec-path (cons npm-executable-path exec-path))
-      (setq compilation-environment (cons (concat "PATH=" npm-path) compilation-environment)))
-    (apply callback args)
-    (setenv "PATH" old-path)
-    (setq exec-path old-exec-path)
-    (setq compilation-environment old-compilation-environment)))
+  (let ((exec-path (if npm-executable-path
+		       (cons npm-executable-path exec-path)
+		     exec-path))
+	(compilation-environment (if npm-executable-path
+				     (cons (concat "PATH=" npm-executable-path path-separator (getenv "PATH")) compilation-environment)
+				   compilation-environment)))
+    (apply callback args)))
 
 (defun npm-git ()
   "Create a Git URL from `npm-vars-git-user' and `npm-vars-name'."
@@ -81,8 +76,6 @@ If nil, npm.el shall look up from the global path."
 (defun flatten-list (list) (apply #'nconc list))
 
 (defun is-dev-dependency (dp) (plist-get dp :dev))
-
-(defun is-empty (str) (string= "" str))
 
 (defun make-keyword (symbol) (intern (format ":%s" symbol)))
 
@@ -210,7 +203,7 @@ LICENSE  - License this package is released under."
 
 (defun npm-parse-deps (input)
   (let (deps dev-deps)
-    (setq deps (remove-if 'is-empty (split-string input ", ")))
+    (setq deps (remove-if 'string-empty-p (split-string input ", ")))
     (setq deps (mapcar 'npm-parse-dependency deps))
 
     (setq dev-deps (remove-if-not 'is-dev-dependency deps))
@@ -221,7 +214,7 @@ LICENSE  - License this package is released under."
     `(:dev ,dev-deps :deps ,deps)))
 
 (defun npm-parse-keywords (input)
-  (remove-if 'is-empty (split-string input ", ")))
+  (remove-if 'string-empty-p (split-string input ", ")))
 
 (defun npm-patch ()
   "Npm version patch"
@@ -309,7 +302,7 @@ SCRIPT can be passed in or selected from a list of scripts configured in a packa
   (save-some-buffers (not compilation-ask-about-save)
                      (when (boundp 'compilation-save-buffers-predicate)
                        compilation-save-buffers-predicate))
-  (let* ((scripts (npm-parse-scripts (process-lines "npm" "run")))
+  (let* ((scripts (npm-parse-scripts (npm-exec-with-path 'process-lines "npm" "run")))
          (selected-script (or script (ido-completing-read "Select script to run: " scripts)))
          (script (concat "npm run " selected-script))
          (buffer-name (concat "*npm run: " selected-script "*")))
