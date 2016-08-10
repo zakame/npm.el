@@ -307,7 +307,7 @@ SCRIPT can be passed in or selected from a list of scripts configured in a packa
   (save-some-buffers (not compilation-ask-about-save)
                      (when (boundp 'compilation-save-buffers-predicate)
                        compilation-save-buffers-predicate))
-  (let* ((scripts (npm-parse-scripts (process-lines "npm" "run")))
+  (let* ((scripts (npm-parse-scripts (npm-exec-with-path 'process-lines "npm" "run")))
          (selected-script (or script (ido-completing-read "Select script to run: " scripts)))
          (script (concat "npm run " selected-script))
          (buffer-name (concat "*npm run: " selected-script "*")))
