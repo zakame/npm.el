@@ -82,8 +82,6 @@ If nil, npm.el shall look up from the global path."
 
 (defun is-dev-dependency (dp) (plist-get dp :dev))
 
-(defun is-empty (str) (string= "" str))
-
 (defun make-keyword (symbol) (intern (format ":%s" symbol)))
 
 (defun npm-package-json (name desc version main test-cmd keywords deps git author license)
@@ -210,7 +208,7 @@ LICENSE  - License this package is released under."
 
 (defun npm-parse-deps (input)
   (let (deps dev-deps)
-    (setq deps (remove-if 'is-empty (split-string input ", ")))
+    (setq deps (remove-if 'string-empty-p (split-string input ", ")))
     (setq deps (mapcar 'npm-parse-dependency deps))
 
     (setq dev-deps (remove-if-not 'is-dev-dependency deps))
@@ -221,7 +219,7 @@ LICENSE  - License this package is released under."
     `(:dev ,dev-deps :deps ,deps)))
 
 (defun npm-parse-keywords (input)
-  (remove-if 'is-empty (split-string input ", ")))
+  (remove-if 'string-empty-p (split-string input ", ")))
 
 (defun npm-patch ()
   "Npm version patch"
